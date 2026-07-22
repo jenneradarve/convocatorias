@@ -1,69 +1,101 @@
-const {
-Events
-} = require("discord.js");
-
+const { Events } = require("discord.js");
 const formulario = require("../handlers/formulario");
+const estado = require("../database/estado");
 
 module.exports = {
 
-name: Events.InteractionCreate,
+    name: Events.InteractionCreate,
 
-async execute(interaction, client) {
+    async execute(interaction, client) {
 
-if (interaction.isChatInputCommand()) {
+        // =====================
+        // COMANDOS
+        // =====================
 
-const command = client.commands.get(interaction.commandName);
+        if (interaction.isChatInputCommand()) {
 
-if (!command) return;
+            const command = client.commands.get(interaction.commandName);
 
-return command.execute(interaction);
+            if (!command) return;
 
-}
+            return command.execute(interaction);
 
-if (!interaction.isButton()) return;
+        }
 
-if (interaction.customId !== "postularse") return;
+        // =====================
+        // BOTONES
+        // =====================
 
-const ROL = "1527771385236291815";
+        if (!interaction.isButton()) return;
 
-if (!interaction.member.roles.cache.has(ROL)) {
+        // ---------------------
+        // POSTULARSE
+        // ---------------------
 
-return interaction.reply({
+        if (interaction.customId === "postularse") {
 
-content: "❌ No tienes permiso para postularte.",
+            if (!estado.estaAbierta()) {
 
-ephemeral: true
+                return interaction.reply({
+                    content: "❌ Las convocatorias se encuentran cerradas.",
+                    ephemeral: true
+                });
 
-});
+            }
 
-}
+            const ROL = "1527771385236291815";
 
-if (formulario.existe(interaction.user.id)) {
+            if (!interaction.member.roles.cache.has(ROL)) {
 
-return interaction.reply({
+                return interaction.reply({
+                    content: "❌ No tienes el rol requerido para postularte.",
+                    ephemeral: true
+                });
 
-content: "❌ Ya tienes una postulación en proceso.",
+            }
 
-ephemeral: true
+            if (formulario.existe(interaction.user.id)) {
 
-});
+                return interaction.reply({
+                    content: "❌ Ya tienes una postulación en proceso.",
+                    ephemeral: true
+                });
 
-}
+            }
 
-formulario.crear(interaction.user.id);
+            formulario.crear(interaction.user.id);
 
-await interaction.reply({
+            await interaction.reply({
+                content: "📩 Revisa tus mensajes privados.",
+                ephemeral: true
+            });
 
-content: "📩 Revisa tus mensajes privados.",
+            const dm = await interaction.user.createDM();
 
-ephemeral: true
+            return dm.send(formulario.pregunta(0));
 
-});
+        }
 
-const dm = await interaction.user.createDM();
+        // ---------------------
+        // ACEPTAR
+        // ---------------------
 
-await dm.send(formulario.pregunta(0));
+        if (interaction.customId.startsWith("aceptar_")) {
 
-}
+            return require("./buttonReview").execute(interaction);
+
+        }
+
+        // ---------------------
+        // RECHAZAR
+        // ---------------------
+
+        if (interaction.customId.startsWith("rechazar_")) {
+
+            return require("./buttonReview").execute(interaction);
+
+        }
+
+    }
 
 };
