@@ -1,66 +1,66 @@
 require("dotenv").config();
 
 const {
-  Client,
-  GatewayIntentBits,
-  Partials,
-  Collection
+    Client,
+    GatewayIntentBits,
+    Partials,
+    Collection
 } = require("discord.js");
 
 const fs = require("fs");
 const path = require("path");
 
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.DirectMessages
-  ],
-  partials: [Partials.Channel]
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.DirectMessages
+    ],
+    partials: [Partials.Channel]
 });
 
 client.commands = new Collection();
 
 const commandsPath = path.join(__dirname, "commands");
 
-if (fs.existsSync(commandsPath)) {
-  const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".js"));
+const commandFiles = fs
+    .readdirSync(commandsPath)
+    .filter(file => file.endsWith(".js"));
 
-  for (const file of commandFiles) {
+for (const file of commandFiles) {
+
     const command = require(path.join(commandsPath, file));
+
     client.commands.set(command.data.name, command);
-  }
+
 }
 
-client.once("ready", () => {
-  console.log(`✅ ${client.user.tag} conectado.`);
-});
+const eventsPath = path.join(__dirname, "events");
 
-client.on("interactionCreate", async interaction => {
+if (fs.existsSync(eventsPath)) {
 
-  if (interaction.isChatInputCommand()) {
+    const eventFiles = fs
+        .readdirSync(eventsPath)
+        .filter(file => file.endsWith(".js"));
 
-    const command = client.commands.get(interaction.commandName);
+    for (const file of eventFiles) {
 
-    if (!command) return;
+        const event = require(path.join(eventsPath, file));
 
-    try {
-      await command.execute(interaction);
-    } catch (error) {
-      console.error(error);
+        if (event.once) {
 
-      if (!interaction.replied) {
-        await interaction.reply({
-          content: "❌ Ocurrió un error.",
-          ephemeral: true
-        });
-      }
+            client.once(event.name, (...args) => event.execute(...args, client));
+
+        } else {
+
+            client.on(event.name, (...args) => event.execute(...args, client));
+
+        }
+
     }
 
-  }
-
-});
+}
 
 client.login(process.env.TOKEN);
