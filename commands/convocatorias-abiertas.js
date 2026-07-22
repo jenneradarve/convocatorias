@@ -1,96 +1,80 @@
 const {
-    SlashCommandBuilder,
-    EmbedBuilder,
-    ActionRowBuilder,
-    ButtonBuilder,
-    ButtonStyle,
-    PermissionFlagsBits
+SlashCommandBuilder,
+EmbedBuilder,
+ActionRowBuilder,
+ButtonBuilder,
+ButtonStyle,
+PermissionFlagsBits
 } = require("discord.js");
+
+const estado = require("../database/estado");
 
 module.exports = {
 
-    data: new SlashCommandBuilder()
+data: new SlashCommandBuilder()
 
-        .setName("convocatorias-abiertas")
+.setName("convocatorias-abiertas")
 
-        .setDescription("Abre las convocatorias de ICE.")
+.setDescription("Abrir convocatorias.")
 
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+.setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
 
-    async execute(interaction) {
+async execute(interaction){
 
-        const canal = interaction.guild.channels.cache.get("1527883021212979293");
+estado.abrir();
 
-        if (!canal) {
+const canal = interaction.guild.channels.cache.get("1527883021212979293");
 
-            return interaction.reply({
+const embed = new EmbedBuilder()
 
-                content: "❌ No encontré el canal configurado.",
+.setColor("Blue")
 
-                ephemeral: true
+.setTitle("🇺🇸 ICE MANAGEMENT")
 
-            });
+.setDescription(`# Convocatorias Abiertas
 
-        }
+Las convocatorias para **U.S. Immigration and Customs Enforcement** se encuentran abiertas.
 
-        const embed = new EmbedBuilder()
+Presiona **📋 Postularse** para iniciar tu proceso de selección.`)
 
-            .setColor("#0A5FFF")
+.setTimestamp();
 
-            .setTitle("🇺🇸 ICE MANAGEMENT")
+const fila = new ActionRowBuilder()
 
-            .setDescription(
-`# Convocatorias Abiertas
+.addComponents(
 
-Las convocatorias para formar parte de **U.S. Immigration and Customs Enforcement** ya se encuentran abiertas.
+new ButtonBuilder()
 
-Antes de postularte asegúrate de cumplir con los requisitos establecidos por la institución.
+.setCustomId("postularse")
 
-Pulsa el botón **Postularse** para comenzar el proceso de selección.
+.setLabel("Postularse")
 
-> Solo los usuarios con el rol de Aspirante pueden enviar el formulario.`
-)
+.setEmoji("📋")
 
-            .setFooter({
+.setStyle(ButtonStyle.Primary)
 
-                text: "ICE Management"
+);
 
-            })
+await canal.bulkDelete(20,true).catch(()=>{});
 
-            .setTimestamp();
+await canal.send({
 
-        const boton = new ButtonBuilder()
+content:"<@&1527771385236291815>",
 
-            .setCustomId("postularse")
+embeds:[embed],
 
-            .setLabel("Postularse")
+components:[fila]
 
-            .setEmoji("📋")
+});
 
-            .setStyle(ButtonStyle.Primary);
+await interaction.reply({
 
-        const fila = new ActionRowBuilder()
+content:"✅ Convocatorias abiertas.",
 
-            .addComponents(boton);
+ephemeral:true
 
-        await canal.send({
+});
 
-            content: "<@&1527771385236291815>",
-
-            embeds: [embed],
-
-            components: [fila]
-
-        });
-
-        await interaction.reply({
-
-            content: "✅ Convocatorias abiertas correctamente.",
-
-            ephemeral: true
-
-        });
-
-    }
+}
 
 };
