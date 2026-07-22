@@ -18,32 +18,42 @@ const client = new Client({
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.DirectMessages
     ],
-    partials: [Partials.Channel]
+    partials: [
+        Partials.Channel
+    ]
 });
 
 client.commands = new Collection();
 
+// =========================
+// CARGAR COMANDOS
+// =========================
+
 const commandsPath = path.join(__dirname, "commands");
 
-const commandFiles = fs
-    .readdirSync(commandsPath)
-    .filter(file => file.endsWith(".js"));
+if (fs.existsSync(commandsPath)) {
 
-for (const file of commandFiles) {
+    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".js"));
 
-    const command = require(path.join(commandsPath, file));
+    for (const file of commandFiles) {
 
-    client.commands.set(command.data.name, command);
+        const command = require(path.join(commandsPath, file));
+
+        client.commands.set(command.data.name, command);
+
+    }
 
 }
+
+// =========================
+// CARGAR EVENTOS
+// =========================
 
 const eventsPath = path.join(__dirname, "events");
 
 if (fs.existsSync(eventsPath)) {
 
-    const eventFiles = fs
-        .readdirSync(eventsPath)
-        .filter(file => file.endsWith(".js"));
+    const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith(".js"));
 
     for (const file of eventFiles) {
 
@@ -62,5 +72,17 @@ if (fs.existsSync(eventsPath)) {
     }
 
 }
+
+// =========================
+// BOT LISTO
+// =========================
+
+client.once("ready", () => {
+
+    console.log(`✅ ${client.user.tag} conectado correctamente.`);
+
+});
+
+// =========================
 
 client.login(process.env.TOKEN);
