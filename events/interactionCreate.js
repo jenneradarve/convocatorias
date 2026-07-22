@@ -1,107 +1,69 @@
 const {
-    Events
+Events
 } = require("discord.js");
 
-const postulaciones = new Map();
+const formulario = require("../handlers/formulario");
 
 module.exports = {
 
-    name: Events.InteractionCreate,
+name: Events.InteractionCreate,
 
-    async execute(interaction, client) {
+async execute(interaction, client) {
 
-        // ==========================
-        // COMANDOS SLASH
-        // ==========================
+if (interaction.isChatInputCommand()) {
 
-        if (interaction.isChatInputCommand()) {
+const command = client.commands.get(interaction.commandName);
 
-            const command = client.commands.get(interaction.commandName);
+if (!command) return;
 
-            if (!command) return;
+return command.execute(interaction);
 
-            try {
+}
 
-                await command.execute(interaction);
+if (!interaction.isButton()) return;
 
-            } catch (err) {
+if (interaction.customId !== "postularse") return;
 
-                console.error(err);
+const ROL = "1527771385236291815";
 
-            }
+if (!interaction.member.roles.cache.has(ROL)) {
 
-            return;
+return interaction.reply({
 
-        }
+content: "❌ No tienes permiso para postularte.",
 
-        // ==========================
-        // BOTÓN POSTULARSE
-        // ==========================
+ephemeral: true
 
-        if (interaction.isButton()) {
+});
 
-            if (interaction.customId !== "postularse") return;
+}
 
-            const ROL_POSTULANTE = "1527771385236291815";
+if (formulario.existe(interaction.user.id)) {
 
-            if (!interaction.member.roles.cache.has(ROL_POSTULANTE)) {
+return interaction.reply({
 
-                return interaction.reply({
+content: "❌ Ya tienes una postulación en proceso.",
 
-                    content: "❌ No tienes el rol requerido para postularte.",
+ephemeral: true
 
-                    ephemeral: true
+});
 
-                });
+}
 
-            }
+formulario.crear(interaction.user.id);
 
-            if (postulaciones.has(interaction.user.id)) {
+await interaction.reply({
 
-                return interaction.reply({
+content: "📩 Revisa tus mensajes privados.",
 
-                    content: "❌ Ya tienes una postulación en proceso.",
+ephemeral: true
 
-                    ephemeral: true
+});
 
-                });
+const dm = await interaction.user.createDM();
 
-            }
+await dm.send(formulario.pregunta(0));
 
-            postulaciones.set(interaction.user.id, {
-
-                paso: 0,
-
-                respuestas: {}
-
-            });
-
-            await interaction.reply({
-
-                content: "📩 Revisa tus mensajes privados. Allí comenzaremos tu postulación.",
-
-                ephemeral: true
-
-            });
-
-            const dm = await interaction.user.createDM();
-
-            await dm.send(
-`# 🇺🇸 ICE MANAGEMENT
-
-Bienvenido al proceso de selección.
-
-Responderás una serie de preguntas.
-
-Escribe cada respuesta en un solo mensaje.
-
-## Sección Información
-
-**1. ¿Cuál es tu usuario de Discord?**`
-);
-
-        }
-
-    }
+}
 
 };
