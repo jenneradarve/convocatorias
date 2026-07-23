@@ -15,6 +15,7 @@ const client = new Client({
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.GuildMessageReactions,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.DirectMessages
     ],
@@ -73,16 +74,10 @@ if (fs.existsSync(eventsPath)) {
 
 }
 
-// =========================
-// BOT LISTO
-// =========================
-
 client.once("ready", () => {
 
     console.log(`✅ ${client.user.tag} conectado correctamente.`);
 
 });
-
-// =========================
 
 client.login(process.env.TOKEN);
