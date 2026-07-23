@@ -1,111 +1,93 @@
-const { Events, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+const {
+    Events,
+    EmbedBuilder,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle
+} = require("discord.js");
+
 const formulario = require("../handlers/formulario");
-const db = require("../database/database");
 const config = require("../config");
+const db = require("../database/database");
 
 module.exports = {
 
-name: Events.MessageCreate,
+    name: Events.MessageCreate,
 
-async execute(message) {
+    async execute(message) {
 
-if (message.author.bot) return;
-if (message.guild) return;
+        if (message.author.bot) return;
+        if (message.guild) return;
 
-if (!formulario.existe(message.author.id)) return;
+        if (!formulario.existe(message.author.id)) return;
 
-const datos = formulario.obtener(message.author.id);
+        formulario.guardar(message.author.id, message.content);
 
-datos.respuestas.push(message.content);
+        if (formulario.terminado(message.author.id)) {
 
-datos.paso++;
+            const respuestas = formulario.respuestas(message.author.id);
 
-if (datos.paso >= formulario.total()) {
+            db.prepare(`
+                INSERT INTO postulaciones
+                (usuario, discord, estado, fecha, datos)
+                VALUES (?, ?, ?, ?, ?)
+            `).run(
+                message.author.id,
+                message.author.tag,
+                "Pendiente",
+                new Date().toLocaleString(),
+                JSON.stringify(respuestas)
+            );
 
-db.prepare(`
-INSERT INTO postulaciones
-(usuario,discord,estado,fecha,datos)
-VALUES(?,?,?,?,?)
-`).run(
-message.author.id,
-message.author.tag,
-"Pendiente",
-new Date().toLocaleString(),
-JSON.stringify(datos.respuestas)
-);
+            const guild = message.client.guilds.cache.get(config.guildId);
 
-const guild = message.client.guilds.cache.get(config.guildId);
+            const canal = guild.channels.cache.get(config.channels.revision);
 
-const canal = guild.channels.cache.get(config.channels.revision);
+            const embed = new EmbedBuilder()
+                .setColor("Blue")
+                .setTitle("📋 Nueva Postulación")
+                .setDescription(
+                    respuestas
+                        .map((r, i) => `**${i + 1}.** ${r}`)
+                        .join("\n\n")
+                )
+                .setFooter({
+                    text: `${message.author.tag} • ${message.author.id}`
+                })
+                .setTimestamp();
 
-const embed = new EmbedBuilder()
+            const botones = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`aceptar_${message.author.id}`)
+                        .setLabel("Aceptar")
+                        .setStyle(ButtonStyle.Success),
 
-.setColor("Blue")
+                    new ButtonBuilder()
+                        .setCustomId(`rechazar_${message.author.id}`)
+                        .setLabel("Rechazar")
+                        .setStyle(ButtonStyle.Danger)
+                );
 
-.setTitle("📋 Nueva Postulación")
+            await canal.send({
+                content: `<@&${config.roles.revisor}>`,
+                embeds: [embed],
+                components: [botones]
+            });
 
-.setDescription(
+            await message.channel.send(
+                "✅ Tu formulario fue enviado correctamente. Espera la revisión de un miembro del Staff."
+            );
 
-datos.respuestas
-.map((r,i)=>`**${i+1}.** ${r}`)
-.join("\n\n")
+            formulario.eliminar(message.author.id);
 
-)
+            return;
+        }
 
-.setFooter({
+        await message.channel.send(
+            formulario.pregunta(message.author.id)
+        );
 
-text: message.author.tag
-
-})
-
-.setTimestamp();
-
-const botones = new ActionRowBuilder()
-
-.addComponents(
-
-new ButtonBuilder()
-
-.setCustomId(`aceptar_${message.author.id}`)
-
-.setLabel("Aceptar")
-
-.setStyle(ButtonStyle.Success),
-
-new ButtonBuilder()
-
-.setCustomId(`rechazar_${message.author.id}`)
-
-.setLabel("Rechazar")
-
-.setStyle(ButtonStyle.Danger)
-
-);
-
-await canal.send({
-
-content:`<@&${config.roles.revisor}>`,
-
-embeds:[embed],
-
-components:[botones]
-
-});
-
-await message.channel.send("✅ Tu formulario fue enviado correctamente.");
-
-formulario.eliminar(message.author.id);
-
-return;
-
-}
-
-await message.channel.send(
-
-formulario.pregunta(datos.paso)
-
-);
-
-}
+    }
 
 };
