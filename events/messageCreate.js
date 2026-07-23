@@ -21,7 +21,27 @@ module.exports = {
 
         if (!formulario.existe(message.author.id)) return;
 
+        // ==========================
+        // VALIDAR RESPUESTA
+        // ==========================
+
+        if (!formulario.validar(message.author.id, message.content)) {
+
+            return message.channel.send(
+                "❌ Tu respuesta es demasiado corta. Amplíala antes de continuar con la siguiente pregunta."
+            );
+
+        }
+
+        // ==========================
+        // GUARDAR RESPUESTA
+        // ==========================
+
         formulario.guardar(message.author.id, message.content);
+
+        // ==========================
+        // SI TERMINÓ EL FORMULARIO
+        // ==========================
 
         if (formulario.terminado(message.author.id)) {
 
@@ -41,48 +61,68 @@ module.exports = {
 
             const guild = message.client.guilds.cache.get(config.guildId);
 
+            if (!guild) {
+                return message.channel.send("❌ Error: no se encontró el servidor.");
+            }
+
             const canal = guild.channels.cache.get(config.channels.revision);
 
+            if (!canal) {
+                return message.channel.send("❌ Error: no se encontró el canal de revisión.");
+            }
+
+            const descripcion = respuestas
+                .map((respuesta, indice) => {
+                    return `### ${indice + 1}. ${respuesta}`;
+                })
+                .join("\n\n");
+
             const embed = new EmbedBuilder()
-                .setColor("Blue")
+                .setColor("#0A5FFF")
                 .setTitle("📋 Nueva Postulación")
-                .setDescription(
-                    respuestas
-                        .map((r, i) => `**${i + 1}.** ${r}`)
-                        .join("\n\n")
-                )
+                .setDescription(descripcion)
                 .setFooter({
                     text: `${message.author.tag} • ${message.author.id}`
                 })
                 .setTimestamp();
 
-            const botones = new ActionRowBuilder()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(`aceptar_${message.author.id}`)
-                        .setLabel("Aceptar")
-                        .setStyle(ButtonStyle.Success),
+            const botones = new ActionRowBuilder().addComponents(
 
-                    new ButtonBuilder()
-                        .setCustomId(`rechazar_${message.author.id}`)
-                        .setLabel("Rechazar")
-                        .setStyle(ButtonStyle.Danger)
-                );
+                new ButtonBuilder()
+                    .setCustomId(`aceptar_${message.author.id}`)
+                    .setLabel("Aceptar")
+                    .setStyle(ButtonStyle.Success),
+
+                new ButtonBuilder()
+                    .setCustomId(`rechazar_${message.author.id}`)
+                    .setLabel("Rechazar")
+                    .setStyle(ButtonStyle.Danger)
+
+            );
 
             await canal.send({
+
                 content: `<@&${config.roles.revisor}>`,
+
                 embeds: [embed],
+
                 components: [botones]
+
             });
 
             await message.channel.send(
-                "✅ Tu formulario fue enviado correctamente. Espera la revisión de un miembro del Staff."
+                "✅ Tu formulario fue enviado correctamente.\n\nAhora será revisado por el Departamento de Reclutamiento."
             );
 
             formulario.eliminar(message.author.id);
 
             return;
+
         }
+
+        // ==========================
+        // SIGUIENTE PREGUNTA
+        // ==========================
 
         await message.channel.send(
             formulario.pregunta(message.author.id)
