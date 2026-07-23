@@ -2,6 +2,10 @@ const Database = require("better-sqlite3");
 
 const db = new Database("database.sqlite");
 
+// =========================
+// POSTULACIONES
+// =========================
+
 db.prepare(`
 CREATE TABLE IF NOT EXISTS postulaciones (
 
@@ -20,6 +24,10 @@ datos TEXT
 )
 `).run();
 
+// =========================
+// SANCIONES
+// =========================
+
 db.prepare(`
 CREATE TABLE IF NOT EXISTS sanciones (
 
@@ -36,6 +44,20 @@ evidencias TEXT,
 staff TEXT,
 
 fecha TEXT
+
+)
+`).run();
+
+// =========================
+// CONFIGURACIÓN
+// =========================
+
+db.prepare(`
+CREATE TABLE IF NOT EXISTS configuracion (
+
+clave TEXT PRIMARY KEY,
+
+valor TEXT
 
 )
 `).run();
